@@ -37,6 +37,156 @@
     }
   }
 
+  // 儲存移除的物件 ID 到 chrome.storage.local
+  function saveRemovedItem(itemId) {
+    chrome.storage.local.get(['removedItems'], (result) => {
+      const removedItems = result.removedItems || [];
+      if (!removedItems.includes(itemId)) {
+        removedItems.push(itemId);
+        chrome.storage.local.set({ removedItems }, () => {
+          addDebugMessage(`儲存物件ID: ${itemId} 到已移除清單`);
+        });
+      }
+    });
+  }
+
+  // 獲取已移除的物件 ID 列表
+  function getRemovedItems(callback) {
+    chrome.storage.local.get(['removedItems'], (result) => {
+      callback(result.removedItems || []);
+    });
+  }
+
+  // 提取物件 ID
+  function extractItemId(itemElement) {
+    // 嘗試從 data 屬性獲取 ID
+    const dataId = itemElement.getAttribute('data-bind') ||
+      itemElement.getAttribute('data-id') ||
+      itemElement.getAttribute('data-item-id');
+    if (dataId) {
+      // 使用正則表達式從字符串中提取數字 ID
+      const match = dataId.match(/\d+/);
+      if (match) return match[0];
+    }
+
+    // 嘗試從內部元素獲取 ID
+    const idElement = itemElement.querySelector('[data-bind*="id"]') ||
+      itemElement.querySelector('[data-id]') ||
+      itemElement.querySelector('[class*="item-id"]');
+    if (idElement) {
+      const idText = idElement.getAttribute('data-bind') ||
+        idElement.getAttribute('data-id') ||
+        idElement.textContent;
+      const match = idText.match(/\d+/);
+      if (match) return match[0];
+    }
+
+    // 嘗試從URL連結中提取 ID
+    const linkElement = itemElement.querySelector('a[href*="/rent-detail/"]');
+    if (linkElement) {
+      const href = linkElement.getAttribute('href');
+      const match = href.match(/\/rent-detail\/(\d+)/);
+      if (match && match[1]) return match[1];
+    }
+
+    // 最後嘗試從包含數字的類名或 ID 屬性中提取
+    const idFromClass = itemElement.className.match(/item[-_]?(\d+)/) ||
+      itemElement.id.match(/item[-_]?(\d+)/);
+    if (idFromClass && idFromClass[1]) return idFromClass[1];
+
+    // 若無法找到 ID，使用元素的一些特徵作為唯一標識
+    // 例如：標題+價格+面積 組合的雜湊值
+    const titleElem = itemElement.querySelector('[class*="title"]') ||
+      itemElement.querySelector('h3') ||
+      itemElement.querySelector('h4');
+    const priceElem = itemElement.querySelector('[class*="price"]');
+
+    let signature = '';
+    if (titleElem) signature += titleElem.textContent.trim();
+    if (priceElem) signature += '-' + priceElem.textContent.trim();
+
+    if (signature) {
+      // 創建一個簡單的雜湊字符串作為 ID
+      return 'hash_' + signature.replace(/\s+/g, '');
+    }
+
+    // 如果所有方法都失敗，返回隨機 ID 加上時間戳
+    return 'random_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
+  }
+
+  // 隱藏指定的物件元素
+  function hideItem(itemElement, itemId) {
+    itemElement.style.display = 'none';
+    addDebugMessage(`已隱藏物件: ${itemId}`);
+  }
+
+  // 頁面載入時隱藏已移除的物件
+  function hideRemovedItems() {
+    getRemovedItems((removedItems) => {
+      if (removedItems.length === 0) {
+        addDebugMessage('沒有發現已移除的物件');
+        return;
+      }
+
+      addDebugMessage(`載入了 ${removedItems.length} 個已移除物件`);
+
+      // 查找所有房屋物件元素
+      const listContainer = document.querySelector('.list-container') ||
+        document.querySelector('.vue-list-rent-container') ||
+        document.querySelector('.main-content') ||
+        document.querySelector('main');
+
+      if (!listContainer) {
+        addDebugMessage('找不到列表容器，無法隱藏已移除物件');
+        return;
+      }
+
+      // 尋找所有可能的房屋項目
+      const allPossibleItems = [];
+
+      // 使用多種選擇器
+      const selectors = [
+        '.item-container',
+        '.vue-list-rent-item',
+        '.rent-item',
+        '[class*="item-container"]',
+        '[class*="view-item"]',
+        '[class*="house-item"]',
+        'div[class*="item"]'
+      ];
+
+      selectors.forEach(selector => {
+        const items = listContainer.querySelectorAll(selector);
+        items.forEach(item => {
+          if (item.offsetWidth > 200 && item.offsetHeight > 100) {
+            allPossibleItems.push(item);
+          }
+        });
+      });
+
+      let hiddenCount = 0;
+
+      // 檢查每個物件並隱藏已移除的
+      allPossibleItems.forEach(item => {
+        const itemId = extractItemId(item);
+        if (itemId && removedItems.includes(itemId)) {
+          hideItem(item, itemId);
+          hiddenCount++;
+        } else if (itemId && removedItems.some(id =>
+          id.startsWith('hash_') &&
+          itemId.startsWith('hash_') &&
+          // 比較雜湊值的一部分來提高匹配機率
+          id.substring(5, 15) === itemId.substring(5, 15)
+        )) {
+          hideItem(item, itemId);
+          hiddenCount++;
+        }
+      });
+
+      addDebugMessage(`自動隱藏了 ${hiddenCount} 個已移除物件`);
+    });
+  }
+
   // 專注處理房屋物件元素
   function processItemElements() {
     addDebugMessage('開始尋找房屋物件...');
@@ -124,6 +274,9 @@
         return;
       }
 
+      // 嘗試提取物件 ID
+      const itemId = extractItemId(item);
+
       // 設置相對定位
       if (getComputedStyle(item).position === 'static') {
         item.style.position = 'relative';
@@ -133,6 +286,7 @@
       const removeBtn = document.createElement('button');
       removeBtn.className = 'remove-591-btn';
       removeBtn.textContent = '✕ 移除';
+      removeBtn.setAttribute('data-item-id', itemId);
 
       // 設置按鈕樣式
       Object.assign(removeBtn.style, {
@@ -168,7 +322,14 @@
 
         // 隱藏房屋物件
         item.style.display = 'none';
-        addDebugMessage(`已隱藏房屋物件 #${index + 1}`);
+
+        // 儲存物件 ID 到 chrome.storage.local
+        if (itemId) {
+          saveRemovedItem(itemId);
+          addDebugMessage(`已隱藏並儲存物件 #${index + 1} (ID: ${itemId})`);
+        } else {
+          addDebugMessage(`已隱藏物件 #${index + 1} (無法獲取 ID)`);
+        }
       });
 
       // 添加按鈕
@@ -299,14 +460,36 @@
 
       if (num <= targetItems.length) {
         const item = targetItems[num - 1];
+        const itemId = extractItemId(item);
+
         item.style.display = 'none';
-        addDebugMessage(`已隱藏 #${num} 物件`);
+
+        // 儲存物件 ID 到 chrome.storage.local
+        if (itemId) {
+          saveRemovedItem(itemId);
+          addDebugMessage(`已隱藏並儲存物件 #${num} (ID: ${itemId})`);
+        } else {
+          addDebugMessage(`已隱藏物件 #${num} (無法獲取 ID)`);
+        }
+
         numInput.value = '';
       }
     });
 
     inputContainer.appendChild(numInput);
     inputContainer.appendChild(hideBtn);
+
+    // 添加已移除物件計數器
+    const removedCounter = document.createElement('div');
+    removedCounter.id = 'removed-counter';
+    removedCounter.style.color = 'white';
+    removedCounter.style.marginTop = '5px';
+    removedCounter.style.fontSize = '12px';
+
+    // 獲取已移除物件數量
+    getRemovedItems(items => {
+      removedCounter.textContent = `已移除物件數: ${items.length}`;
+    });
 
     // 添加關閉按鈕
     const closeBtn = document.createElement('button');
@@ -327,6 +510,7 @@
 
     controlPanel.appendChild(markItemsBtn);
     controlPanel.appendChild(inputContainer);
+    controlPanel.appendChild(removedCounter);
     controlPanel.appendChild(closeBtn);
     document.body.appendChild(controlPanel);
   }
@@ -334,15 +518,29 @@
   // 設置執行時機
   setTimeout(() => {
     addDebugMessage('591租屋過濾擴充功能啟動');
-    processItemElements();
+
+    // 先隱藏已移除的物件，再處理添加按鈕
+    hideRemovedItems();
+
+    // 然後處理物件元素和添加按鈕
+    setTimeout(processItemElements, 500);
   }, 1500);
 
   // 定期檢查新元素
-  setInterval(processItemElements, 3000);
+  setInterval(() => {
+    processItemElements();
+    // 每 10 秒重新檢查一次已移除物件
+    if (Math.random() < 0.3) { // 隨機約 30% 的機率執行，減少資源消耗
+      hideRemovedItems();
+    }
+  }, 3000);
 
   // 監視 DOM 變化
   const observer = new MutationObserver(() => {
-    setTimeout(processItemElements, 500);
+    setTimeout(() => {
+      hideRemovedItems();
+      processItemElements();
+    }, 1000);
   });
 
   setTimeout(() => {
