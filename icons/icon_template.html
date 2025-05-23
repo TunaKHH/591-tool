@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>591 租屋列表過濾 - 圖示生成器</title>
+  <style>
+    body {
+      font-family: 'Microsoft JhengHei', '微軟正黑體', Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+
+    h1 {
+      color: #e53935;
+    }
+
+    .icon-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .icon-box {
+      background: white;
+      border-radius: 8px;
+      padding: 15px;
+      text-align: center;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .icon-title {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    .instructions {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .material-icon {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #e53935;
+      color: white;
+      border-radius: 8px;
+    }
+
+    canvas {
+      border: 1px solid #ddd;
+      background: #fff;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>591 租屋列表過濾 - Material Icons 圖示</h1>
+
+  <div class="icon-container">
+    <div class="icon-box">
+      <svg width="128" height="128" viewBox="0 0 128 128" id="icon128">
+        <rect width="128" height="128" rx="20" fill="#e53935" />
+        <g transform="translate(24, 24) scale(3.3)">
+          <!-- Material Icons - home_work (家+工作場所圖示) -->
+          <path fill="white"
+            d="M1,11V21H11V11H1M3,19V13H9V19H3M21,3H13V9H21V3M19,7H15V5H19V7M21,11H13V21H21V11M19,19H15V13H19V19M11,3H3V9H11V3M9,7H5V5H9V7Z" />
+          <!-- Material Icons - filter_alt (過濾器圖示) -->
+          <path fill="white" d="M 4.5,7 H 19.5 L 12,17 V 22 L 8,24 V 17 L 0.5,7 Z"
+            transform="translate(35, 3) scale(0.6)" stroke="white" stroke-width="1" />
+        </g>
+      </svg>
+      <div class="icon-title">128 x 128</div>
+      <button onclick="downloadIcon(128)">下載 icon128.png</button>
+    </div>
+
+    <div class="icon-box">
+      <svg width="48" height="48" viewBox="0 0 48 48" id="icon48">
+        <rect width="48" height="48" rx="8" fill="#e53935" />
+        <g transform="translate(9, 9) scale(1.25)">
+          <path fill="white"
+            d="M1,11V21H11V11H1M3,19V13H9V19H3M21,3H13V9H21V3M19,7H15V5H19V7M21,11H13V21H21V11M19,19H15V13H19V19M11,3H3V9H11V3M9,7H5V5H9V7Z" />
+          <path fill="white" d="M 4.5,7 H 19.5 L 12,17 V 22 L 8,24 V 17 L 0.5,7 Z"
+            transform="translate(35, 3) scale(0.6)" stroke="white" stroke-width="1" />
+        </g>
+      </svg>
+      <div class="icon-title">48 x 48</div>
+      <button onclick="downloadIcon(48)">下載 icon48.png</button>
+    </div>
+
+    <div class="icon-box">
+      <svg width="16" height="16" viewBox="0 0 16 16" id="icon16">
+        <rect width="16" height="16" rx="3" fill="#e53935" />
+        <g transform="translate(3, 3) scale(0.42)">
+          <path fill="white"
+            d="M1,11V21H11V11H1M3,19V13H9V19H3M21,3H13V9H21V3M19,7H15V5H19V7M21,11H13V21H21V11M19,19H15V13H19V19M11,3H3V9H11V3M9,7H5V5H9V7Z" />
+          <path fill="white" d="M 4.5,7 H 19.5 L 12,17 V 22 L 8,24 V 17 L 0.5,7 Z"
+            transform="translate(35, 3) scale(0.6)" stroke="white" stroke-width="1" />
+        </g>
+      </svg>
+      <div class="icon-title">16 x 16</div>
+      <button onclick="downloadIcon(16)">下載 icon16.png</button>
+    </div>
+  </div>
+
+  <div class="instructions">
+    <h2>使用說明</h2>
+    <ol>
+      <li>點擊各圖示下方的「下載」按鈕，分別下載三種尺寸的圖示</li>
+      <li>將下載的圖示檔案 (icon16.png, icon48.png, icon128.png) 放到擴充套件的 icons 資料夾中</li>
+      <li>這些圖示使用了 Material Icons 的設計元素，融合了「房屋」與「過濾器」的概念</li>
+      <li>圖示的配色採用 591 網站的紅色系風格</li>
+    </ol>
+  </div>
+
+  <canvas id="canvas" style="display:none;"></canvas>
+
+  <script>
+    function downloadIcon(size) {
+      const canvas = document.getElementById('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      // 獲取 SVG 內容
+      const svgElement = document.getElementById(`icon${size}`);
+      const svgData = new XMLSerializer().serializeToString(svgElement);
+
+      // 創建一個 Blob 物件並轉換為 URL
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+
+      // 創建圖片元素並畫到 canvas 上
+      const img = new Image();
+      img.onload = function () {
+        ctx.drawImage(img, 0, 0, size, size);
+        URL.revokeObjectURL(url);
+
+        // 將 canvas 轉換為 PNG 並下載
+        const link = document.createElement('a');
+        link.download = `icon${size}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      };
+      img.src = url;
+    }
+  </script>
+</body>
+
+</html>

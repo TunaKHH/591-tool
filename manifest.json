@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "591 租屋列表過濾",
-  "version": "1.3",
-  "description": "在 591 租屋列表頁面注入移除按鈕，隱藏指定物件並持久化儲存 (第二階段)",
+  "version": "1.4",
+  "description": "在 591 租屋列表頁面注入移除按鈕，隱藏指定物件並持久化儲存，提供物件管理介面",
   "permissions": [
     "storage"
   ],
@@ -16,5 +16,11 @@
       ],
       "run_at": "document_idle"
     }
-  ]
+  ],
+  "options_page": "options.html",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
 }

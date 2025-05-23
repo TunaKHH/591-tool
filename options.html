@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>591 租屋列表過濾 - 設定</title>
+  <style>
+    body {
+      font-family: 'Microsoft JhengHei', '微軟正黑體', Arial, sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      color: #e53935;
+      margin-top: 0;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .stats {
+      background: #f9f9f9;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+
+    .control-panel {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+
+    .primary-btn {
+      background-color: #4caf50;
+      color: white;
+    }
+
+    .danger-btn {
+      background-color: #f44336;
+      color: white;
+    }
+
+    .secondary-btn {
+      background-color: #607d8b;
+      color: white;
+    }
+
+    button:hover {
+      opacity: 0.85;
+      transform: translateY(-1px);
+    }
+
+    .items-list {
+      max-height: 500px;
+      overflow-y: auto;
+      border: 1px solid #eee;
+      border-radius: 5px;
+    }
+
+    .empty-list {
+      padding: 20px;
+      text-align: center;
+      color: #777;
+    }
+
+    .item-card {
+      padding: 15px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .item-card:last-child {
+      border-bottom: none;
+    }
+
+    .item-card:hover {
+      background-color: #f5f5f5;
+    }
+
+    .item-info {
+      flex-grow: 1;
+    }
+
+    .item-id {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .item-preview {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .item-actions {
+      display: flex;
+      gap: 5px;
+    }
+
+    .search-box {
+      margin-bottom: 20px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .search-box input {
+      flex-grow: 1;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+
+    .no-results {
+      padding: 20px;
+      text-align: center;
+      color: #777;
+    }
+
+    .restore-btn {
+      background-color: #2196f3;
+      color: white;
+    }
+
+    .footer {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 14px;
+      color: #777;
+    }
+
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top: 4px solid #3498db;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      margin: 10px auto;
+      display: none;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>591 租屋列表過濾 - 管理已移除物件</h1>
+
+    <div class="stats">
+      <div id="total-count">載入中...</div>
+    </div>
+
+    <div class="control-panel">
+      <button id="refresh-btn" class="primary-btn">重新整理</button>
+      <button id="clear-all-btn" class="danger-btn">清除全部</button>
+      <button id="export-btn" class="secondary-btn">匯出資料</button>
+      <button id="import-btn" class="secondary-btn">匯入資料</button>
+      <input type="file" id="import-file" accept=".json" style="display: none;">
+    </div>
+
+    <div class="search-box">
+      <input type="text" id="search-input" placeholder="搜尋物件 ID...">
+      <button id="search-btn" class="primary-btn">搜尋</button>
+      <button id="clear-search-btn" class="secondary-btn">清除</button>
+    </div>
+
+    <div class="spinner" id="spinner"></div>
+
+    <div class="items-list" id="items-container">
+      <div class="empty-list">載入中...</div>
+    </div>
+
+    <div class="footer">
+      <p>591 租屋列表過濾擴充套件 v1.4</p>
+      <p>用於 <a href="https://rent.591.com.tw" target="_blank">rent.591.com.tw</a> 網站</p>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+
+</html>

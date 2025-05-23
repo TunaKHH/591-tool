@@ -15,7 +15,7 @@
       maxHeight: '200px',
       overflow: 'auto',
       fontSize: '12px',
-      fontFamily: 'monospace'
+      fontFamily: 'Microsoft JhengHei, 微軟正黑體, sans-serif'
     });
     panel.id = 'debug-591-panel';
     document.body.appendChild(panel);
@@ -45,10 +45,13 @@
         removedItems.push(itemId);
         chrome.storage.local.set({ removedItems }, () => {
           addDebugMessage(`儲存物件ID: ${itemId} 到已移除清單`);
+          // 更新移除數量徽章
+          updateRemoveCount();
         });
       }
     });
   }
+
 
   // 獲取已移除的物件 ID 列表
   function getRemovedItems(callback) {
@@ -491,6 +494,27 @@
       removedCounter.textContent = `已移除物件數: ${items.length}`;
     });
 
+    // 添加選項頁面按鈕
+    const optionsBtn = document.createElement('button');
+    optionsBtn.textContent = '管理已移除物件';
+    Object.assign(optionsBtn.style, {
+      padding: '8px',
+      background: '#2196F3',
+      color: 'white',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      marginTop: '5px'
+    });
+
+    optionsBtn.addEventListener('click', () => {
+      if (chrome.runtime.openOptionsPage) {
+        chrome.runtime.openOptionsPage();
+      } else {
+        window.open(chrome.runtime.getURL('options.html'));
+      }
+    });
+
     // 添加關閉按鈕
     const closeBtn = document.createElement('button');
     closeBtn.textContent = '關閉控制面板';
@@ -511,8 +535,103 @@
     controlPanel.appendChild(markItemsBtn);
     controlPanel.appendChild(inputContainer);
     controlPanel.appendChild(removedCounter);
+    controlPanel.appendChild(optionsBtn);
     controlPanel.appendChild(closeBtn);
     document.body.appendChild(controlPanel);
+  }
+
+  // 添加固定的選項按鈕
+  function addOptionsButton() {
+    // 檢查按鈕是否已存在
+    if (document.getElementById('591-options-btn')) {
+      return;
+    }
+
+    const optionsBtn = document.createElement('div');
+    optionsBtn.id = '591-options-btn';
+    Object.assign(optionsBtn.style, {
+      position: 'fixed',
+      bottom: '20px',
+      right: '20px',
+      width: '50px',
+      height: '50px',
+      borderRadius: '50%',
+      background: '#e53935',
+      color: 'white',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.3)',
+      zIndex: '999997',
+      cursor: 'pointer',
+      fontSize: '20px',
+      fontWeight: 'bold',
+      transition: 'all 0.2s ease'
+    });
+
+    optionsBtn.innerHTML = '⚙️';
+    optionsBtn.title = '管理已移除物件';
+
+    // 懸停效果
+    optionsBtn.onmouseover = () => {
+      optionsBtn.style.transform = 'scale(1.1)';
+    };
+
+    optionsBtn.onmouseout = () => {
+      optionsBtn.style.transform = 'scale(1)';
+    };
+
+    // 點擊打開選項頁面
+    optionsBtn.addEventListener('click', () => {
+      if (chrome.runtime.openOptionsPage) {
+        chrome.runtime.openOptionsPage();
+      } else {
+        window.open(chrome.runtime.getURL('options.html'));
+      }
+    });
+
+    document.body.appendChild(optionsBtn);
+
+    // 創建移除數量的小徽章
+    updateRemoveCount();
+  }
+
+  // 更新移除數量徽章
+  function updateRemoveCount() {
+    // 移除舊的徽章
+    const oldBadge = document.getElementById('591-count-badge');
+    if (oldBadge) {
+      oldBadge.remove();
+    }
+
+    // 獲取移除數量
+    chrome.storage.local.get(['removedItems'], (result) => {
+      const count = result.removedItems ? result.removedItems.length : 0;
+
+      if (count > 0) {
+        const badge = document.createElement('div');
+        badge.id = '591-count-badge';
+        Object.assign(badge.style, {
+          position: 'absolute',
+          top: '-5px',
+          right: '-5px',
+          background: '#4CAF50',
+          color: 'white',
+          borderRadius: '50%',
+          padding: '2px 6px',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)'
+        });
+
+        badge.textContent = count > 99 ? '99+' : count;
+
+        const optionsBtn = document.getElementById('591-options-btn');
+        if (optionsBtn) {
+          optionsBtn.appendChild(badge);
+        }
+      }
+    });
   }
 
   // 設置執行時機
@@ -524,6 +643,9 @@
 
     // 然後處理物件元素和添加按鈕
     setTimeout(processItemElements, 500);
+
+    // 添加選項按鈕
+    setTimeout(addOptionsButton, 1000);
   }, 1500);
 
   // 定期檢查新元素
@@ -540,6 +662,11 @@
     setTimeout(() => {
       hideRemovedItems();
       processItemElements();
+
+      // 確保選項按鈕存在
+      if (!document.getElementById('591-options-btn')) {
+        addOptionsButton();
+      }
     }, 1000);
   });
 
