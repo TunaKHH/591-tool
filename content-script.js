@@ -66,13 +66,24 @@
   }
 
   // 隱藏房屋物件（隱藏外層包裝 div 避免留下空白）
-  function hideItem(itemElement) {
-    const wrapper = itemElement.parentElement;
-    if (wrapper && wrapper.parentElement === document.querySelector('main')) {
-      wrapper.style.display = 'none';
-    } else {
-      itemElement.style.display = 'none';
+  function hideItem(itemElement, animate = false) {
+    const target = (itemElement.parentElement && itemElement.parentElement.parentElement === document.querySelector('main'))
+      ? itemElement.parentElement
+      : itemElement;
+
+    if (!animate) {
+      target.style.display = 'none';
+      return;
     }
+
+    target.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+    target.style.transform = 'scale(0)';
+    target.style.opacity = '0';
+    target.addEventListener('transitionend', (e) => {
+      if (e.propertyName === 'opacity') {
+        target.style.display = 'none';
+      }
+    }, { once: true });
   }
 
   // 頁面載入時隱藏已移除的物件
@@ -137,7 +148,7 @@
         e.stopPropagation();
         e.stopImmediatePropagation();
 
-        hideItem(item);
+        hideItem(item, true);
         saveRemovedItem(itemId);
       }, true);
 
