@@ -15,13 +15,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // 存儲當前所有移除項目的全局變量
   let allRemovedItems = [];
+  let allRemovedTimestamps = {};
 
   // 加載移除項目資料
   function loadRemovedItems() {
     showSpinner();
-    chrome.storage.local.get(['removedItems'], function (result) {
+    chrome.storage.local.get(['removedItems', 'removedTimestamps'], function (result) {
       hideSpinner();
       const removedItems = result.removedItems || [];
+      allRemovedTimestamps = result.removedTimestamps || {};
       allRemovedItems = removedItems;
       updateTotalCount(removedItems.length);
       displayItems(removedItems);
@@ -56,19 +58,11 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    // 按照 ID 排序，數字 ID 在前，雜湊 ID 在後
+    // 按移除時間排序（最新在最上面），無時間戳記的排在最後
     items.sort((a, b) => {
-      const aIsNumber = !isNaN(Number(a));
-      const bIsNumber = !isNaN(Number(b));
-
-      if (aIsNumber && !bIsNumber) return -1;
-      if (!aIsNumber && bIsNumber) return 1;
-
-      if (aIsNumber && bIsNumber) {
-        return Number(a) - Number(b);
-      }
-
-      return a.localeCompare(b);
+      const aTime = allRemovedTimestamps[a] || 0;
+      const bTime = allRemovedTimestamps[b] || 0;
+      return bTime - aTime;
     });
 
     // 建立項目卡片
@@ -112,6 +106,17 @@ document.addEventListener('DOMContentLoaded', function () {
         itemInfo.appendChild(itemIdElement);
       }
 
+      // 顯示移除時間
+      const timestamp = allRemovedTimestamps[itemId];
+      const itemTime = document.createElement('div');
+      itemTime.className = 'item-time';
+      if (timestamp) {
+        itemTime.textContent = `移除時間：${formatDateTime(new Date(timestamp))}`;
+      } else {
+        itemTime.textContent = '移除時間：未記錄';
+      }
+      itemInfo.appendChild(itemTime);
+
       const itemActions = document.createElement('div');
       itemActions.className = 'item-actions';
 
@@ -144,15 +149,16 @@ document.addEventListener('DOMContentLoaded', function () {
   // 還原項目
   function restoreItem(itemId) {
     showSpinner();
-    chrome.storage.local.get(['removedItems'], function (result) {
+    chrome.storage.local.get(['removedItems', 'removedTimestamps'], function (result) {
       const removedItems = result.removedItems || [];
+      const removedTimestamps = result.removedTimestamps || {};
       const updatedItems = removedItems.filter(id => id !== itemId);
+      delete removedTimestamps[itemId];
 
-      chrome.storage.local.set({ removedItems: updatedItems }, function () {
+      chrome.storage.local.set({ removedItems: updatedItems, removedTimestamps }, function () {
         hideSpinner();
-        // 更新全局變數
         allRemovedItems = updatedItems;
-        // 重新顯示列表
+        allRemovedTimestamps = removedTimestamps;
         updateTotalCount(updatedItems.length);
         displayItems(updatedItems);
       });
@@ -168,9 +174,10 @@ document.addEventListener('DOMContentLoaded', function () {
   function clearAllItems() {
     if (confirm('確定要清除所有已移除的物件嗎？此操作無法還原。')) {
       showSpinner();
-      chrome.storage.local.set({ removedItems: [] }, function () {
+      chrome.storage.local.set({ removedItems: [], removedTimestamps: {} }, function () {
         hideSpinner();
         allRemovedItems = [];
+        allRemovedTimestamps = {};
         updateTotalCount(0);
         displayItems([]);
       });
@@ -202,7 +209,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // 匯出資料
   function exportData() {
-    const dataStr = JSON.stringify({ removedItems: allRemovedItems });
+    const dataStr = JSON.stringify({ removedItems: allRemovedItems, removedTimestamps: allRemovedTimestamps });
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
 
@@ -229,13 +236,17 @@ document.addEventListener('DOMContentLoaded', function () {
             showSpinner();
 
             // 合併現有資料和匯入資料，並去除重複項
-            chrome.storage.local.get(['removedItems'], function (result) {
+            chrome.storage.local.get(['removedItems', 'removedTimestamps'], function (result) {
               const currentItems = result.removedItems || [];
+              const currentTimestamps = result.removedTimestamps || {};
               const mergedItems = [...new Set([...currentItems, ...data.removedItems])];
+              const importedTimestamps = data.removedTimestamps || {};
+              const mergedTimestamps = { ...currentTimestamps, ...importedTimestamps };
 
-              chrome.storage.local.set({ removedItems: mergedItems }, function () {
+              chrome.storage.local.set({ removedItems: mergedItems, removedTimestamps: mergedTimestamps }, function () {
                 hideSpinner();
                 allRemovedItems = mergedItems;
+                allRemovedTimestamps = mergedTimestamps;
                 updateTotalCount(mergedItems.length);
                 displayItems(mergedItems);
                 alert(`成功匯入資料！總共有 ${mergedItems.length} 個已移除的物件。`);
@@ -261,6 +272,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+
+  // 格式化日期時間為 YYYY-MM-DD HH:mm
+  function formatDateTime(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
   }
 
   // 事件綁定

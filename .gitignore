@@ -1,0 +1,5 @@
+# 測試截圖
+verify-*.png
+
+# OS
+.DS_Store
