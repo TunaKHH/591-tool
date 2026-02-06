@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "591 租屋列表過濾",
   "version": "1.4",
-  "description": "在 591 租屋列表頁面注入移除按鈕，隱藏指定物件並持久化儲存，提供物件管理介面",
+  "description": "隱藏 591 租屋列表中不想看的物件",
   "permissions": [
     "storage"
   ],
