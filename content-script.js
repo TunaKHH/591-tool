@@ -1,12 +1,28 @@
 (() => {
+  // 從物件元素中提取標題
+  function extractItemTitle(itemElement) {
+    const titleLink = itemElement.querySelector('.item-info-title a');
+    if (titleLink) return titleLink.textContent.trim();
+
+    const titleDiv = itemElement.querySelector('.item-info-title');
+    if (titleDiv) return titleDiv.textContent.trim();
+
+    return null;
+  }
+
   // 儲存移除的物件 ID 到 chrome.storage.local
-  function saveRemovedItem(itemId) {
-    chrome.storage.local.get(['removedItems', 'removedTimestamps'], (result) => {
+  function saveRemovedItem(itemId, itemTitle) {
+    chrome.storage.local.get(['removedItems', 'removedTimestamps', 'removedItemNames'], (result) => {
       const removedItems = result.removedItems || [];
       const removedTimestamps = result.removedTimestamps || {};
+      const removedItemNames = result.removedItemNames || {};
       if (!removedItems.includes(itemId)) {
         removedItems.push(itemId);
-        chrome.storage.local.set({ removedItems }, () => {
+        removedTimestamps[itemId] = Date.now();
+        if (itemTitle) {
+          removedItemNames[itemId] = itemTitle;
+        }
+        chrome.storage.local.set({ removedItems, removedTimestamps, removedItemNames }, () => {
           updateRemoveCount();
         });
       }
@@ -150,7 +166,7 @@
         e.stopImmediatePropagation();
 
         hideItem(item, true);
-        saveRemovedItem(itemId);
+        saveRemovedItem(itemId, extractItemTitle(item));
       }, true);
 
       // 同時也攔截 mousedown/mouseup 防止 Vue 的其他事件處理

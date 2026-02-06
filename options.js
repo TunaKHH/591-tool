@@ -1,7 +1,7 @@
 // options.js - 591 租屋列表過濾選項頁面
 document.addEventListener('DOMContentLoaded', function () {
   // 獲取DOM元素
-  const totalCountElement = document.getElementById('total-count');
+  const statsNumberElement = document.getElementById('stats-number');
   const itemsContainer = document.getElementById('items-container');
   const refreshBtn = document.getElementById('refresh-btn');
   const clearAllBtn = document.getElementById('clear-all-btn');
@@ -9,21 +9,34 @@ document.addEventListener('DOMContentLoaded', function () {
   const importBtn = document.getElementById('import-btn');
   const importFileInput = document.getElementById('import-file');
   const searchInput = document.getElementById('search-input');
-  const searchBtn = document.getElementById('search-btn');
-  const clearSearchBtn = document.getElementById('clear-search-btn');
   const spinner = document.getElementById('spinner');
 
   // 存儲當前所有移除項目的全局變量
   let allRemovedItems = [];
   let allRemovedTimestamps = {};
+  let allRemovedItemNames = {};
+
+  // 防抖函數
+  function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
 
   // 加載移除項目資料
   function loadRemovedItems() {
     showSpinner();
-    chrome.storage.local.get(['removedItems', 'removedTimestamps'], function (result) {
+    chrome.storage.local.get(['removedItems', 'removedTimestamps', 'removedItemNames'], function (result) {
       hideSpinner();
       const removedItems = result.removedItems || [];
       allRemovedTimestamps = result.removedTimestamps || {};
+      allRemovedItemNames = result.removedItemNames || {};
       allRemovedItems = removedItems;
       updateTotalCount(removedItems.length);
       displayItems(removedItems);
@@ -42,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // 更新總數量顯示
   function updateTotalCount(count) {
-    totalCountElement.textContent = `共有 ${count} 個已移除的物件`;
+    statsNumberElement.textContent = count;
   }
 
   // 顯示項目列表
@@ -52,8 +65,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (items.length === 0) {
       const emptyElement = document.createElement('div');
-      emptyElement.className = 'empty-list';
-      emptyElement.textContent = '沒有已移除的物件';
+      emptyElement.className = 'empty-state';
+      emptyElement.innerHTML = `
+        <div class="empty-icon">📭</div>
+        <div class="empty-title">目前沒有已移除的物件</div>
+        <div class="empty-text">在 591 租屋列表中點擊「移除」按鈕來隱藏物件</div>
+      `;
       itemsContainer.appendChild(emptyElement);
       return;
     }
@@ -65,45 +82,47 @@ document.addEventListener('DOMContentLoaded', function () {
       return bTime - aTime;
     });
 
-    // 建立項目卡片
+    // 建立項目列
     items.forEach(itemId => {
-      const itemCard = document.createElement('div');
-      itemCard.className = 'item-card';
-      itemCard.dataset.id = itemId;
+      const itemRow = document.createElement('div');
+      itemRow.className = 'item-row';
+      itemRow.dataset.id = itemId;
 
-      const itemInfo = document.createElement('div');
-      itemInfo.className = 'item-info';
+      const itemContent = document.createElement('div');
+      itemContent.className = 'item-content';
 
-      const itemIdElement = document.createElement('div');
-      itemIdElement.className = 'item-id';
+      const itemTitle = document.createElement('div');
+      itemTitle.className = 'item-title';
+
+      const itemName = allRemovedItemNames[itemId];
 
       // 判斷是數字 ID 還是雜湊 ID
       if (!isNaN(Number(itemId))) {
-        itemIdElement.textContent = `物件 ID: ${itemId}`;
+        itemTitle.textContent = itemName || `物件 ID: ${itemId}`;
 
         // 添加連結預覽
-        const itemPreview = document.createElement('div');
-        itemPreview.className = 'item-preview';
+        const itemMeta = document.createElement('div');
+        itemMeta.className = 'item-meta';
 
         const itemLink = document.createElement('a');
-        itemLink.href = `https://rent.591.com.tw/rent-detail/${itemId}`;
-        itemLink.textContent = `前往查看: rent.591.com.tw/rent-detail/${itemId}`;
+        itemLink.href = `https://rent.591.com.tw/${itemId}`;
+        itemLink.textContent = `rent.591.com.tw/${itemId}`;
         itemLink.target = '_blank';
 
-        itemPreview.appendChild(itemLink);
-        itemInfo.appendChild(itemIdElement);
-        itemInfo.appendChild(itemPreview);
+        itemMeta.appendChild(itemLink);
+        itemContent.appendChild(itemTitle);
+        itemContent.appendChild(itemMeta);
       } else if (itemId.startsWith('hash_')) {
-        itemIdElement.textContent = `雜湊物件: ${itemId.substring(5, 15)}...`;
-        itemInfo.appendChild(itemIdElement);
+        itemTitle.textContent = itemName || `雜湊物件: ${itemId.substring(5, 15)}...`;
+        itemContent.appendChild(itemTitle);
 
-        const itemPreview = document.createElement('div');
-        itemPreview.className = 'item-preview';
-        itemPreview.textContent = '自動產生的雜湊 ID (無法連結至原始頁面)';
-        itemInfo.appendChild(itemPreview);
+        const itemMeta = document.createElement('div');
+        itemMeta.className = 'item-meta';
+        itemMeta.textContent = '自動產生的雜湊 ID (無法連結至原始頁面)';
+        itemContent.appendChild(itemMeta);
       } else {
-        itemIdElement.textContent = `其他 ID: ${itemId}`;
-        itemInfo.appendChild(itemIdElement);
+        itemTitle.textContent = itemName || `其他 ID: ${itemId}`;
+        itemContent.appendChild(itemTitle);
       }
 
       // 顯示移除時間
@@ -115,69 +134,60 @@ document.addEventListener('DOMContentLoaded', function () {
       } else {
         itemTime.textContent = '移除時間：未記錄';
       }
-      itemInfo.appendChild(itemTime);
+      itemContent.appendChild(itemTime);
 
       const itemActions = document.createElement('div');
       itemActions.className = 'item-actions';
 
       // 還原按鈕
       const restoreButton = document.createElement('button');
-      restoreButton.className = 'restore-btn';
+      restoreButton.className = 'btn-ghost';
       restoreButton.textContent = '還原';
       restoreButton.addEventListener('click', () => {
         restoreItem(itemId);
       });
 
-      // 刪除按鈕
-      const deleteButton = document.createElement('button');
-      deleteButton.className = 'danger-btn';
-      deleteButton.textContent = '刪除';
-      deleteButton.addEventListener('click', () => {
-        deleteItem(itemId);
-      });
-
       itemActions.appendChild(restoreButton);
-      itemActions.appendChild(deleteButton);
 
-      itemCard.appendChild(itemInfo);
-      itemCard.appendChild(itemActions);
+      itemRow.appendChild(itemContent);
+      itemRow.appendChild(itemActions);
 
-      itemsContainer.appendChild(itemCard);
+      itemsContainer.appendChild(itemRow);
     });
   }
 
   // 還原項目
   function restoreItem(itemId) {
     showSpinner();
-    chrome.storage.local.get(['removedItems', 'removedTimestamps'], function (result) {
+    chrome.storage.local.get(['removedItems', 'removedTimestamps', 'removedItemNames'], function (result) {
       const removedItems = result.removedItems || [];
       const removedTimestamps = result.removedTimestamps || {};
+      const removedItemNames = result.removedItemNames || {};
       const updatedItems = removedItems.filter(id => id !== itemId);
       delete removedTimestamps[itemId];
+      delete removedItemNames[itemId];
 
-      chrome.storage.local.set({ removedItems: updatedItems, removedTimestamps }, function () {
+      chrome.storage.local.set({ removedItems: updatedItems, removedTimestamps, removedItemNames }, function () {
         hideSpinner();
         allRemovedItems = updatedItems;
         allRemovedTimestamps = removedTimestamps;
+        allRemovedItemNames = removedItemNames;
         updateTotalCount(updatedItems.length);
-        displayItems(updatedItems);
+        // 重新搜尋以更新顯示
+        searchItems();
       });
     });
-  }
-
-  // 刪除項目 (同 restoreItem，但語意不同)
-  function deleteItem(itemId) {
-    restoreItem(itemId);
   }
 
   // 清除所有項目
   function clearAllItems() {
     if (confirm('確定要清除所有已移除的物件嗎？此操作無法還原。')) {
       showSpinner();
-      chrome.storage.local.set({ removedItems: [], removedTimestamps: {} }, function () {
+      chrome.storage.local.set({ removedItems: [], removedTimestamps: {}, removedItemNames: {} }, function () {
         hideSpinner();
         allRemovedItems = [];
         allRemovedTimestamps = {};
+        allRemovedItemNames = {};
         updateTotalCount(0);
         displayItems([]);
       });
@@ -193,23 +203,29 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    const filteredItems = allRemovedItems.filter(itemId =>
-      itemId.toLowerCase().includes(query)
-    );
+    const filteredItems = allRemovedItems.filter(itemId => {
+      if (itemId.toLowerCase().includes(query)) return true;
+      const name = allRemovedItemNames[itemId];
+      return name && name.toLowerCase().includes(query);
+    });
 
     displayItems(filteredItems);
 
-    if (filteredItems.length === 0) {
+    if (filteredItems.length === 0 && allRemovedItems.length > 0) {
       const noResults = document.createElement('div');
-      noResults.className = 'no-results';
-      noResults.textContent = '沒有符合的搜尋結果';
+      noResults.className = 'empty-state';
+      noResults.innerHTML = `
+        <div class="empty-icon">🔍</div>
+        <div class="empty-title">沒有符合的搜尋結果</div>
+        <div class="empty-text">試試其他關鍵字</div>
+      `;
       itemsContainer.appendChild(noResults);
     }
   }
 
   // 匯出資料
   function exportData() {
-    const dataStr = JSON.stringify({ removedItems: allRemovedItems, removedTimestamps: allRemovedTimestamps });
+    const dataStr = JSON.stringify({ removedItems: allRemovedItems, removedTimestamps: allRemovedTimestamps, removedItemNames: allRemovedItemNames });
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
 
@@ -236,17 +252,21 @@ document.addEventListener('DOMContentLoaded', function () {
             showSpinner();
 
             // 合併現有資料和匯入資料，並去除重複項
-            chrome.storage.local.get(['removedItems', 'removedTimestamps'], function (result) {
+            chrome.storage.local.get(['removedItems', 'removedTimestamps', 'removedItemNames'], function (result) {
               const currentItems = result.removedItems || [];
               const currentTimestamps = result.removedTimestamps || {};
+              const currentItemNames = result.removedItemNames || {};
               const mergedItems = [...new Set([...currentItems, ...data.removedItems])];
               const importedTimestamps = data.removedTimestamps || {};
+              const importedItemNames = data.removedItemNames || {};
               const mergedTimestamps = { ...currentTimestamps, ...importedTimestamps };
+              const mergedItemNames = { ...currentItemNames, ...importedItemNames };
 
-              chrome.storage.local.set({ removedItems: mergedItems, removedTimestamps: mergedTimestamps }, function () {
+              chrome.storage.local.set({ removedItems: mergedItems, removedTimestamps: mergedTimestamps, removedItemNames: mergedItemNames }, function () {
                 hideSpinner();
                 allRemovedItems = mergedItems;
                 allRemovedTimestamps = mergedTimestamps;
+                allRemovedItemNames = mergedItemNames;
                 updateTotalCount(mergedItems.length);
                 displayItems(mergedItems);
                 alert(`成功匯入資料！總共有 ${mergedItems.length} 個已移除的物件。`);
@@ -290,11 +310,10 @@ document.addEventListener('DOMContentLoaded', function () {
   exportBtn.addEventListener('click', exportData);
   importBtn.addEventListener('click', () => importFileInput.click());
   importFileInput.addEventListener('change', importData);
-  searchBtn.addEventListener('click', searchItems);
-  clearSearchBtn.addEventListener('click', () => {
-    searchInput.value = '';
-    displayItems(allRemovedItems);
-  });
+
+  // 即時搜尋（防抖）
+  const debouncedSearch = debounce(searchItems, 200);
+  searchInput.addEventListener('input', debouncedSearch);
   searchInput.addEventListener('keypress', function (e) {
     if (e.key === 'Enter') {
       searchItems();

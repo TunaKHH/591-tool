@@ -4,215 +4,532 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>591 租屋列表過濾 - 設定</title>
+  <title>591 租屋過濾 - 設定</title>
   <style>
+    :root {
+      --color-bg: #f9fafb;
+      --color-surface: #ffffff;
+      --color-border: #e5e7eb;
+      --color-border-hover: #d1d5db;
+      --color-text-primary: #111827;
+      --color-text-secondary: #6b7280;
+      --color-text-tertiary: #9ca3af;
+      --color-primary: #2563eb;
+      --color-primary-hover: #1d4ed8;
+      --color-primary-light: #eff6ff;
+      --color-danger: #dc2626;
+      --color-danger-hover: #b91c1c;
+      --color-danger-light: #fef2f2;
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: 'Microsoft JhengHei', '微軟正黑體', Arial, sans-serif;
-      background-color: #f5f5f5;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: var(--color-bg);
       margin: 0;
-      padding: 20px;
-      color: #333;
+      padding: 0;
+      color: var(--color-text-primary);
+      line-height: 1.5;
+      min-height: 100vh;
     }
 
-    .container {
-      max-width: 800px;
+    /* Navigation */
+    .nav {
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      padding: 0 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-content {
+      max-width: 1200px;
       margin: 0 auto;
-      background: white;
-      border-radius: 10px;
-      padding: 20px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    }
-
-    h1 {
-      color: #e53935;
-      margin-top: 0;
-      padding-bottom: 15px;
-      border-bottom: 1px solid #eee;
-    }
-
-    .stats {
-      background: #f9f9f9;
-      padding: 15px;
-      border-radius: 5px;
-      margin-bottom: 20px;
-    }
-
-    .control-panel {
+      height: 56px;
       display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    button {
-      padding: 8px 12px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: bold;
-      transition: all 0.2s;
-    }
-
-    .primary-btn {
-      background-color: #4caf50;
-      color: white;
-    }
-
-    .danger-btn {
-      background-color: #f44336;
-      color: white;
-    }
-
-    .secondary-btn {
-      background-color: #607d8b;
-      color: white;
-    }
-
-    button:hover {
-      opacity: 0.85;
-      transform: translateY(-1px);
-    }
-
-    .items-list {
-      max-height: 500px;
-      overflow-y: auto;
-      border: 1px solid #eee;
-      border-radius: 5px;
-    }
-
-    .empty-list {
-      padding: 20px;
-      text-align: center;
-      color: #777;
-    }
-
-    .item-card {
-      padding: 15px;
-      border-bottom: 1px solid #eee;
-      display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
     }
 
-    .item-card:last-child {
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--color-text-primary);
+    }
+
+    .nav-logo {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, var(--color-primary) 0%, #3b82f6 100%);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+    }
+
+    .nav-version {
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+      background: var(--color-bg);
+      padding: 2px 8px;
+      border-radius: 9999px;
+    }
+
+    /* Main Content */
+    .main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    /* Page Header */
+    .page-header {
+      margin-bottom: 32px;
+    }
+
+    .page-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin: 0 0 8px 0;
+    }
+
+    .page-description {
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      margin: 0;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      line-height: 1;
+    }
+
+    /* Card */
+    .card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .card-body {
+      padding: 0;
+    }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Buttons */
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: var(--radius-md);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+    }
+
+    .btn-primary:hover {
+      background: var(--color-primary-hover);
+      border-color: var(--color-primary-hover);
+    }
+
+    .btn-secondary {
+      background: var(--color-surface);
+      color: var(--color-text-primary);
+      border-color: var(--color-border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--color-bg);
+      border-color: var(--color-border-hover);
+    }
+
+    .btn-danger {
+      background: var(--color-surface);
+      color: var(--color-danger);
+      border-color: var(--color-border);
+    }
+
+    .btn-danger:hover {
+      background: var(--color-danger-light);
+      border-color: var(--color-danger);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--color-primary);
+      border-color: transparent;
+      padding: 6px 10px;
+    }
+
+    .btn-ghost:hover {
+      background: var(--color-primary-light);
+    }
+
+    .btn-icon {
+      font-size: 14px;
+    }
+
+    /* Search */
+    .search-container {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-bg);
+    }
+
+    .search-wrapper {
+      position: relative;
+      max-width: 400px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--color-text-tertiary);
+      font-size: 14px;
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 9px 12px 9px 36px;
+      font-size: 14px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-surface);
+      color: var(--color-text-primary);
+      transition: all 0.15s ease;
+    }
+
+    .search-input::placeholder {
+      color: var(--color-text-tertiary);
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+    }
+
+    /* Items List */
+    .items-list {
+      max-height: 520px;
+      overflow-y: auto;
+    }
+
+    .items-list::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .items-list::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .items-list::-webkit-scrollbar-thumb {
+      background: var(--color-border);
+      border-radius: 4px;
+    }
+
+    .items-list::-webkit-scrollbar-thumb:hover {
+      background: var(--color-border-hover);
+    }
+
+    /* Item Row */
+    .item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--color-border);
+      transition: background 0.1s ease;
+    }
+
+    .item-row:last-child {
       border-bottom: none;
     }
 
-    .item-card:hover {
-      background-color: #f5f5f5;
+    .item-row:hover {
+      background: var(--color-bg);
     }
 
-    .item-info {
-      flex-grow: 1;
+    .item-content {
+      flex: 1;
+      min-width: 0;
     }
 
-    .item-id {
-      font-weight: bold;
-      margin-bottom: 5px;
-    }
-
-    .item-preview {
+    .item-title {
       font-size: 14px;
-      color: #666;
+      font-weight: 500;
+      color: var(--color-text-primary);
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .item-title a {
+      color: var(--color-primary);
+      text-decoration: none;
+    }
+
+    .item-title a:hover {
+      text-decoration: underline;
+    }
+
+    .item-meta {
+      font-size: 13px;
+      color: var(--color-text-secondary);
     }
 
     .item-time {
       font-size: 12px;
-      color: #999;
+      color: var(--color-text-tertiary);
       margin-top: 4px;
     }
 
     .item-actions {
-      display: flex;
-      gap: 5px;
+      flex-shrink: 0;
+      margin-left: 16px;
     }
 
-    .search-box {
-      margin-bottom: 20px;
-      display: flex;
-      gap: 10px;
-    }
-
-    .search-box input {
-      flex-grow: 1;
-      padding: 8px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-    }
-
-    .no-results {
-      padding: 20px;
+    /* Empty State */
+    .empty-state {
+      padding: 64px 24px;
       text-align: center;
-      color: #777;
     }
 
-    .restore-btn {
-      background-color: #2196f3;
-      color: white;
-    }
-
-    .footer {
-      margin-top: 20px;
-      text-align: center;
-      font-size: 14px;
-      color: #777;
-    }
-
-    .spinner {
-      border: 4px solid rgba(0, 0, 0, 0.1);
+    .empty-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 16px;
+      background: var(--color-bg);
       border-radius: 50%;
-      border-top: 4px solid #3498db;
-      width: 20px;
-      height: 20px;
-      animation: spin 1s linear infinite;
-      margin: 10px auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+
+    .empty-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--color-text-primary);
+      margin-bottom: 4px;
+    }
+
+    .empty-text {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--color-border);
+      border-radius: 50%;
+      border-top-color: var(--color-primary);
+      animation: spin 0.7s linear infinite;
+      margin: 32px auto;
       display: none;
     }
 
     @keyframes spin {
-      0% {
-        transform: rotate(0deg);
+      to { transform: rotate(360deg); }
+    }
+
+    /* Divider */
+    .divider {
+      width: 1px;
+      height: 20px;
+      background: var(--color-border);
+    }
+
+    /* Hidden */
+    .hidden {
+      display: none !important;
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .main {
+        padding: 24px 16px;
       }
 
-      100% {
-        transform: rotate(360deg);
+      .toolbar {
+        width: 100%;
+      }
+
+      .toolbar button {
+        flex: 1;
+      }
+
+      .card-header {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .search-wrapper {
+        max-width: none;
+      }
+
+      .item-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .item-actions {
+        margin-left: 0;
+        width: 100%;
+      }
+
+      .item-actions button {
+        width: 100%;
       }
     }
   </style>
 </head>
 
 <body>
-  <div class="container">
-    <h1>591 租屋列表過濾 - 管理已移除物件</h1>
+  <nav class="nav">
+    <div class="nav-content">
+      <div class="nav-brand">
+        <div class="nav-logo">🏠</div>
+        <span>591 租屋過濾</span>
+      </div>
+      <span class="nav-version">v1.4</span>
+    </div>
+  </nav>
 
-    <div class="stats">
-      <div id="total-count">載入中...</div>
+  <main class="main">
+    <div class="page-header">
+      <h1 class="page-title">已移除物件</h1>
+      <p class="page-description">管理您在 591 租屋列表中隱藏的物件</p>
     </div>
 
-    <div class="control-panel">
-      <button id="refresh-btn" class="primary-btn">重新整理</button>
-      <button id="clear-all-btn" class="danger-btn">清除全部</button>
-      <button id="export-btn" class="secondary-btn">匯出資料</button>
-      <button id="import-btn" class="secondary-btn">匯入資料</button>
-      <input type="file" id="import-file" accept=".json" style="display: none;">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">已移除物件數量</div>
+        <div class="stat-value" id="stats-number">-</div>
+      </div>
     </div>
 
-    <div class="search-box">
-      <input type="text" id="search-input" placeholder="搜尋物件 ID...">
-      <button id="search-btn" class="primary-btn">搜尋</button>
-      <button id="clear-search-btn" class="secondary-btn">清除</button>
-    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">物件列表</span>
+        <div class="toolbar">
+          <button id="refresh-btn" class="btn-secondary">
+            <span class="btn-icon">↻</span> 重新整理
+          </button>
+          <div class="divider"></div>
+          <button id="export-btn" class="btn-secondary">
+            <span class="btn-icon">↓</span> 匯出
+          </button>
+          <button id="import-btn" class="btn-secondary">
+            <span class="btn-icon">↑</span> 匯入
+          </button>
+          <input type="file" id="import-file" accept=".json" class="hidden">
+          <div class="divider"></div>
+          <button id="clear-all-btn" class="btn-danger">
+            <span class="btn-icon">✕</span> 清除全部
+          </button>
+        </div>
+      </div>
 
-    <div class="spinner" id="spinner"></div>
+      <div class="search-container">
+        <div class="search-wrapper">
+          <span class="search-icon">⌕</span>
+          <input type="text" id="search-input" class="search-input" placeholder="搜尋物件名稱或 ID...">
+        </div>
+      </div>
 
-    <div class="items-list" id="items-container">
-      <div class="empty-list">載入中...</div>
-    </div>
+      <div class="spinner" id="spinner"></div>
 
-    <div class="footer">
-      <p>591 租屋列表過濾擴充套件 v1.4</p>
-      <p>用於 <a href="https://rent.591.com.tw" target="_blank">rent.591.com.tw</a> 網站</p>
+      <div class="items-list" id="items-container">
+        <div class="empty-state">
+          <div class="empty-icon">📦</div>
+          <div class="empty-title">載入中...</div>
+          <div class="empty-text">正在讀取已移除的物件</div>
+        </div>
+      </div>
     </div>
-  </div>
+  </main>
 
   <script src="options.js"></script>
 </body>
