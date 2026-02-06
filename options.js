@@ -16,6 +16,10 @@ document.addEventListener('DOMContentLoaded', function () {
   let allRemovedTimestamps = {};
   let allRemovedItemNames = {};
 
+  // 排序狀態
+  let currentSortField = 'time';  // 'name' | 'time'
+  let currentSortOrder = 'desc';  // 'asc' | 'desc'
+
   // 防抖函數
   function debounce(func, wait) {
     let timeout;
@@ -58,88 +62,113 @@ document.addEventListener('DOMContentLoaded', function () {
     statsNumberElement.textContent = count;
   }
 
+  // 排序項目
+  function sortItems(items) {
+    return [...items].sort((a, b) => {
+      let comparison = 0;
+
+      if (currentSortField === 'time') {
+        const aTime = allRemovedTimestamps[a] || 0;
+        const bTime = allRemovedTimestamps[b] || 0;
+        comparison = aTime - bTime;
+      } else if (currentSortField === 'name') {
+        const aName = (allRemovedItemNames[a] || `物件 ID: ${a}`).toLowerCase();
+        const bName = (allRemovedItemNames[b] || `物件 ID: ${b}`).toLowerCase();
+        comparison = aName.localeCompare(bName, 'zh-TW');
+      }
+
+      return currentSortOrder === 'asc' ? comparison : -comparison;
+    });
+  }
+
+  // 更新表頭排序圖示
+  function updateSortIcons() {
+    const headers = document.querySelectorAll('.items-table th[data-sort]');
+    headers.forEach(th => {
+      const sortIcon = th.querySelector('.sort-icon');
+      th.classList.remove('sorted');
+      if (sortIcon) sortIcon.textContent = '↕';
+
+      if (th.dataset.sort === currentSortField) {
+        th.classList.add('sorted');
+        if (sortIcon) sortIcon.textContent = currentSortOrder === 'asc' ? '↑' : '↓';
+      }
+    });
+  }
+
   // 顯示項目列表
   function displayItems(items) {
     // 清空容器
     itemsContainer.innerHTML = '';
 
     if (items.length === 0) {
-      const emptyElement = document.createElement('div');
-      emptyElement.className = 'empty-state';
-      emptyElement.innerHTML = `
-        <div class="empty-icon">📭</div>
-        <div class="empty-title">目前沒有已移除的物件</div>
-        <div class="empty-text">在 591 租屋列表中點擊「移除」按鈕來隱藏物件</div>
+      const emptyRow = document.createElement('tr');
+      emptyRow.innerHTML = `
+        <td colspan="3">
+          <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <div class="empty-title">目前沒有已移除的物件</div>
+            <div class="empty-text">在 591 租屋列表中點擊「移除」按鈕來隱藏物件</div>
+          </div>
+        </td>
       `;
-      itemsContainer.appendChild(emptyElement);
+      itemsContainer.appendChild(emptyRow);
       return;
     }
 
-    // 按移除時間排序（最新在最上面），無時間戳記的排在最後
-    items.sort((a, b) => {
-      const aTime = allRemovedTimestamps[a] || 0;
-      const bTime = allRemovedTimestamps[b] || 0;
-      return bTime - aTime;
-    });
+    // 排序項目
+    const sortedItems = sortItems(items);
 
-    // 建立項目列
-    items.forEach(itemId => {
-      const itemRow = document.createElement('div');
-      itemRow.className = 'item-row';
-      itemRow.dataset.id = itemId;
+    // 建立表格列
+    sortedItems.forEach(itemId => {
+      const tr = document.createElement('tr');
+      tr.dataset.id = itemId;
 
-      const itemContent = document.createElement('div');
-      itemContent.className = 'item-content';
-
-      const itemTitle = document.createElement('div');
-      itemTitle.className = 'item-title';
+      // 名稱欄位
+      const tdName = document.createElement('td');
+      tdName.className = 'col-name';
 
       const itemName = allRemovedItemNames[itemId];
+      const nameDiv = document.createElement('div');
+      nameDiv.className = 'item-name';
 
-      // 判斷是數字 ID 還是雜湊 ID
       if (!isNaN(Number(itemId))) {
-        itemTitle.textContent = itemName || `物件 ID: ${itemId}`;
+        nameDiv.textContent = itemName || `物件 ID: ${itemId}`;
 
-        // 添加連結預覽
-        const itemMeta = document.createElement('div');
-        itemMeta.className = 'item-meta';
+        const linkDiv = document.createElement('div');
+        linkDiv.className = 'item-link';
 
         const itemLink = document.createElement('a');
         itemLink.href = `https://rent.591.com.tw/${itemId}`;
         itemLink.textContent = `rent.591.com.tw/${itemId}`;
         itemLink.target = '_blank';
 
-        itemMeta.appendChild(itemLink);
-        itemContent.appendChild(itemTitle);
-        itemContent.appendChild(itemMeta);
+        linkDiv.appendChild(itemLink);
+        tdName.appendChild(nameDiv);
+        tdName.appendChild(linkDiv);
       } else if (itemId.startsWith('hash_')) {
-        itemTitle.textContent = itemName || `雜湊物件: ${itemId.substring(5, 15)}...`;
-        itemContent.appendChild(itemTitle);
+        nameDiv.textContent = itemName || `雜湊物件: ${itemId.substring(5, 15)}...`;
+        tdName.appendChild(nameDiv);
 
-        const itemMeta = document.createElement('div');
-        itemMeta.className = 'item-meta';
-        itemMeta.textContent = '自動產生的雜湊 ID (無法連結至原始頁面)';
-        itemContent.appendChild(itemMeta);
+        const linkDiv = document.createElement('div');
+        linkDiv.className = 'item-link';
+        linkDiv.textContent = '自動產生的雜湊 ID';
+        tdName.appendChild(linkDiv);
       } else {
-        itemTitle.textContent = itemName || `其他 ID: ${itemId}`;
-        itemContent.appendChild(itemTitle);
+        nameDiv.textContent = itemName || `其他 ID: ${itemId}`;
+        tdName.appendChild(nameDiv);
       }
 
-      // 顯示移除時間
+      // 時間欄位
+      const tdTime = document.createElement('td');
+      tdTime.className = 'col-time';
       const timestamp = allRemovedTimestamps[itemId];
-      const itemTime = document.createElement('div');
-      itemTime.className = 'item-time';
-      if (timestamp) {
-        itemTime.textContent = `移除時間：${formatDateTime(new Date(timestamp))}`;
-      } else {
-        itemTime.textContent = '移除時間：未記錄';
-      }
-      itemContent.appendChild(itemTime);
+      tdTime.textContent = timestamp ? formatDateTime(new Date(timestamp)) : '未記錄';
 
-      const itemActions = document.createElement('div');
-      itemActions.className = 'item-actions';
+      // 操作欄位
+      const tdActions = document.createElement('td');
+      tdActions.className = 'col-actions';
 
-      // 還原按鈕
       const restoreButton = document.createElement('button');
       restoreButton.className = 'btn-ghost';
       restoreButton.textContent = '還原';
@@ -147,13 +176,31 @@ document.addEventListener('DOMContentLoaded', function () {
         restoreItem(itemId);
       });
 
-      itemActions.appendChild(restoreButton);
+      tdActions.appendChild(restoreButton);
 
-      itemRow.appendChild(itemContent);
-      itemRow.appendChild(itemActions);
+      tr.appendChild(tdName);
+      tr.appendChild(tdTime);
+      tr.appendChild(tdActions);
 
-      itemsContainer.appendChild(itemRow);
+      itemsContainer.appendChild(tr);
     });
+  }
+
+  // 處理表頭點擊排序
+  function handleSortClick(e) {
+    const th = e.target.closest('th[data-sort]');
+    if (!th) return;
+
+    const field = th.dataset.sort;
+    if (currentSortField === field) {
+      currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+      currentSortField = field;
+      currentSortOrder = field === 'time' ? 'desc' : 'asc';
+    }
+
+    updateSortIcons();
+    searchItems();
   }
 
   // 還原項目
@@ -212,12 +259,15 @@ document.addEventListener('DOMContentLoaded', function () {
     displayItems(filteredItems);
 
     if (filteredItems.length === 0 && allRemovedItems.length > 0) {
-      const noResults = document.createElement('div');
-      noResults.className = 'empty-state';
+      const noResults = document.createElement('tr');
       noResults.innerHTML = `
-        <div class="empty-icon">🔍</div>
-        <div class="empty-title">沒有符合的搜尋結果</div>
-        <div class="empty-text">試試其他關鍵字</div>
+        <td colspan="3">
+          <div class="empty-state">
+            <div class="empty-icon">🔍</div>
+            <div class="empty-title">沒有符合的搜尋結果</div>
+            <div class="empty-text">試試其他關鍵字</div>
+          </div>
+        </td>
       `;
       itemsContainer.appendChild(noResults);
     }
@@ -311,6 +361,10 @@ document.addEventListener('DOMContentLoaded', function () {
   exportBtn.addEventListener('click', exportData);
   importBtn.addEventListener('click', () => importFileInput.click());
   importFileInput.addEventListener('change', importData);
+
+  // 表頭排序點擊
+  const itemsTable = document.getElementById('items-table');
+  itemsTable.querySelector('thead').addEventListener('click', handleSortClick);
 
   // 即時搜尋（防抖）
   const debouncedSearch = debounce(searchItems, 200);

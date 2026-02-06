@@ -286,85 +286,118 @@
       box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
     }
 
-    /* Items List */
-    .items-list {
+    /* Items Table */
+    .items-table-container {
       max-height: 520px;
       overflow-y: auto;
     }
 
-    .items-list::-webkit-scrollbar {
+    .items-table-container::-webkit-scrollbar {
       width: 8px;
     }
 
-    .items-list::-webkit-scrollbar-track {
+    .items-table-container::-webkit-scrollbar-track {
       background: transparent;
     }
 
-    .items-list::-webkit-scrollbar-thumb {
+    .items-table-container::-webkit-scrollbar-thumb {
       background: var(--color-border);
       border-radius: 4px;
     }
 
-    .items-list::-webkit-scrollbar-thumb:hover {
+    .items-table-container::-webkit-scrollbar-thumb:hover {
       background: var(--color-border-hover);
     }
 
-    /* Item Row */
-    .item-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 20px;
-      border-bottom: 1px solid var(--color-border);
-      transition: background 0.1s ease;
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
     }
 
-    .item-row:last-child {
+    .items-table th {
+      position: sticky;
+      top: 0;
+      background: var(--color-bg);
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--color-border);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .items-table th:hover {
+      color: var(--color-text-primary);
+      background: var(--color-border);
+    }
+
+    .items-table th.sorted {
+      color: var(--color-primary);
+    }
+
+    .items-table th .sort-icon {
+      margin-left: 4px;
+      opacity: 0.5;
+    }
+
+    .items-table th.sorted .sort-icon {
+      opacity: 1;
+    }
+
+    .items-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--color-border);
+      font-size: 14px;
+      color: var(--color-text-primary);
+      vertical-align: middle;
+    }
+
+    .items-table tr:last-child td {
       border-bottom: none;
     }
 
-    .item-row:hover {
+    .items-table tr:hover td {
       background: var(--color-bg);
     }
 
-    .item-content {
-      flex: 1;
-      min-width: 0;
+    .items-table .col-name {
+      min-width: 200px;
     }
 
-    .item-title {
-      font-size: 14px;
+    .items-table .col-time {
+      white-space: nowrap;
+      color: var(--color-text-secondary);
+      font-size: 13px;
+    }
+
+    .items-table .col-actions {
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .item-name {
       font-weight: 500;
       color: var(--color-text-primary);
       margin-bottom: 2px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
     }
 
-    .item-title a {
-      color: var(--color-primary);
-      text-decoration: none;
-    }
-
-    .item-title a:hover {
-      text-decoration: underline;
-    }
-
-    .item-meta {
+    .item-link {
       font-size: 13px;
       color: var(--color-text-secondary);
     }
 
-    .item-time {
-      font-size: 12px;
-      color: var(--color-text-tertiary);
-      margin-top: 4px;
+    .item-link a {
+      color: var(--color-primary);
+      text-decoration: none;
     }
 
-    .item-actions {
-      flex-shrink: 0;
-      margin-left: 16px;
+    .item-link a:hover {
+      text-decoration: underline;
     }
 
     /* Empty State */
@@ -521,12 +554,27 @@
 
       <div class="spinner" id="spinner"></div>
 
-      <div class="items-list" id="items-container">
-        <div class="empty-state">
-          <div class="empty-icon">📦</div>
-          <div class="empty-title">載入中...</div>
-          <div class="empty-text">正在讀取已移除的物件</div>
-        </div>
+      <div class="items-table-container">
+        <table class="items-table" id="items-table">
+          <thead>
+            <tr>
+              <th class="col-name" data-sort="name">物件名稱 <span class="sort-icon">↕</span></th>
+              <th class="col-time sorted" data-sort="time">移除時間 <span class="sort-icon">↓</span></th>
+              <th class="col-actions">操作</th>
+            </tr>
+          </thead>
+          <tbody id="items-container">
+            <tr>
+              <td colspan="3">
+                <div class="empty-state">
+                  <div class="empty-icon">📦</div>
+                  <div class="empty-title">載入中...</div>
+                  <div class="empty-text">正在讀取已移除的物件</div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </main>
