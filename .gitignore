@@ -3,3 +3,6 @@ verify-*.png
 
 # OS
 .DS_Store
+*.zip
+.DS_Store
+.playwright-mcp/
