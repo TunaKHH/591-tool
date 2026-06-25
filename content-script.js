@@ -10,8 +10,14 @@
     return null;
   }
 
+  // 檢查擴充套件 context 是否仍有效（重新載入擴充套件後舊 script 會失效）
+  function isContextValid() {
+    return !!(chrome.runtime && chrome.runtime.id);
+  }
+
   // 儲存移除的物件 ID 到 chrome.storage.local
   function saveRemovedItem(itemId, itemTitle) {
+    if (!isContextValid()) return;
     chrome.storage.local.get(['removedItems', 'removedTimestamps', 'removedItemNames'], (result) => {
       const removedItems = result.removedItems || [];
       const removedTimestamps = result.removedTimestamps || {};
@@ -31,6 +37,7 @@
 
   // 獲取已移除的物件 ID 列表
   function getRemovedItems(callback) {
+    if (!isContextValid()) return;
     chrome.storage.local.get(['removedItems'], (result) => {
       callback(result.removedItems || []);
     });
@@ -314,6 +321,7 @@
     optionsBtn.onmouseout = () => { optionsBtn.style.transform = 'scale(1)'; };
 
     optionsBtn.addEventListener('click', () => {
+      if (!isContextValid()) return;
       chrome.runtime.sendMessage({ action: 'openOptionsPage' });
     });
 
@@ -326,6 +334,7 @@
     const oldBadge = document.getElementById('591-count-badge');
     if (oldBadge) oldBadge.remove();
 
+    if (!isContextValid()) return;
     chrome.storage.local.get(['removedItems'], (result) => {
       const count = result.removedItems ? result.removedItems.length : 0;
       if (count > 0) {
@@ -362,8 +371,13 @@
   // 監視 DOM 變化（591 使用 Vue SPA，翻頁時 DOM 會動態更新）
   let debounceTimer = null;
   const observer = new MutationObserver(() => {
+    if (!isContextValid()) {
+      observer.disconnect();
+      return;
+    }
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
+      if (!isContextValid()) return;
       hideRemovedItems();
       processItemElements();
       applySeenTreatment();
