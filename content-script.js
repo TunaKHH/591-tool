@@ -36,6 +36,33 @@
     });
   }
 
+  // ===== 「已看過」功能 =====
+  const SEEN_RETENTION_MS = 90 * 24 * 60 * 60 * 1000; // 90 天
+
+  // 儲存已看過的物件
+  function saveSeenItem(itemId, itemTitle) {
+    chrome.storage.local.get(['seenItems', 'seenTimestamps', 'seenItemNames'], (result) => {
+      const seenItems = result.seenItems || [];
+      const seenTimestamps = result.seenTimestamps || {};
+      const seenItemNames = result.seenItemNames || {};
+      if (!seenItems.includes(itemId)) {
+        seenItems.push(itemId);
+      }
+      seenTimestamps[itemId] = Date.now();
+      if (itemTitle) {
+        seenItemNames[itemId] = itemTitle;
+      }
+      chrome.storage.local.set({ seenItems, seenTimestamps, seenItemNames });
+    });
+  }
+
+  // 取得已看過的物件 ID
+  function getSeenItems(callback) {
+    chrome.storage.local.get(['seenItems'], (result) => {
+      callback(result.seenItems || []);
+    });
+  }
+
   // 提取物件 ID — 591 目前使用 .item[data-id] 結構
   function extractItemId(itemElement) {
     // 優先從 data-id 屬性取得（591 目前的結構）
@@ -82,6 +109,22 @@
     );
   }
 
+  // 取得實際要隱藏/顯示的外層元素（與 hideItem 的 target 判斷一致）
+  function itemWrapper(itemElement) {
+    return (itemElement.parentElement && itemElement.parentElement.parentElement === document.querySelector('main'))
+      ? itemElement.parentElement
+      : itemElement;
+  }
+
+  // 注入淡化樣式（只注入一次）
+  function ensureSeenStyle() {
+    if (document.getElementById('seen-591-style')) return;
+    const style = document.createElement('style');
+    style.id = 'seen-591-style';
+    style.textContent = '.seen-591-faded{opacity:0.4 !important;filter:grayscale(0.8) !important;transition:opacity 0.2s ease, filter 0.2s ease;}';
+    (document.head || document.documentElement).appendChild(style);
+  }
+
   // 隱藏房屋物件（隱藏外層包裝 div 避免留下空白）
   function hideItem(itemElement, animate = false) {
     const target = (itemElement.parentElement && itemElement.parentElement.parentElement === document.querySelector('main'))
@@ -115,6 +158,60 @@
           hideItem(item);
         }
       });
+    });
+  }
+
+  // 依設定對「已看過」物件套用淡化或隱藏（已移除的交給 hideRemovedItems）
+  function applySeenTreatment() {
+    chrome.storage.local.get(['seenItems', 'removedItems', 'settings'], (result) => {
+      const seenItems = result.seenItems || [];
+      const removedItems = result.removedItems || [];
+      const seenMode = (result.settings && result.settings.seenMode === 'hide') ? 'hide' : 'fade';
+      if (seenItems.length === 0) return;
+      ensureSeenStyle();
+
+      const houseItems = findHouseItems();
+      houseItems.forEach(item => {
+        const itemId = extractItemId(item);
+        if (!itemId) return;
+        if (removedItems.includes(itemId)) return; // 已移除 → 不碰，由 hideRemovedItems 隱藏
+
+        if (seenItems.includes(itemId)) {
+          if (seenMode === 'hide') {
+            item.classList.remove('seen-591-faded');
+            hideItem(item);
+          } else {
+            // 淡化：還原可能殘留的隱藏，加上淡化 class
+            itemWrapper(item).style.display = '';
+            item.classList.add('seen-591-faded');
+          }
+        } else {
+          // 不是 seen（例如已從選項頁還原）→ 清除淡化殘留
+          item.classList.remove('seen-591-faded');
+        }
+      });
+    });
+  }
+
+  // 清理超過保留期（90 天）的已看過紀錄
+  function pruneOldSeen() {
+    chrome.storage.local.get(['seenItems', 'seenTimestamps', 'seenItemNames'], (result) => {
+      const seenItems = result.seenItems || [];
+      const seenTimestamps = result.seenTimestamps || {};
+      const seenItemNames = result.seenItemNames || {};
+      if (seenItems.length === 0) return;
+
+      const cutoff = Date.now() - SEEN_RETENTION_MS;
+      const kept = seenItems.filter(id => (seenTimestamps[id] || 0) >= cutoff);
+      if (kept.length === seenItems.length) return; // 無可清理
+
+      const keptTimestamps = {};
+      const keptNames = {};
+      kept.forEach(id => {
+        if (seenTimestamps[id] != null) keptTimestamps[id] = seenTimestamps[id];
+        if (seenItemNames[id] != null) keptNames[id] = seenItemNames[id];
+      });
+      chrome.storage.local.set({ seenItems: kept, seenTimestamps: keptTimestamps, seenItemNames: keptNames });
     });
   }
 
@@ -256,8 +353,9 @@
 
   // 啟動：等待頁面 DOM 就緒
   setTimeout(() => {
+    pruneOldSeen();
     hideRemovedItems();
-    setTimeout(processItemElements, 500);
+    setTimeout(() => { processItemElements(); applySeenTreatment(); }, 500);
     setTimeout(addOptionsButton, 1000);
   }, 1500);
 
@@ -268,6 +366,7 @@
     debounceTimer = setTimeout(() => {
       hideRemovedItems();
       processItemElements();
+      applySeenTreatment();
       if (!document.getElementById('591-options-btn')) {
         addOptionsButton();
       }
@@ -280,4 +379,34 @@
       subtree: true
     });
   }, 2000);
+
+  // 攔截「點進物件詳情」→ 標記為已看過（capture 階段，先於 Vue 處理）
+  function handleListingOpen(e) {
+    // 略過自家「移除」按鈕
+    if (e.target.closest && e.target.closest('.remove-591-btn')) return;
+    // 必須點在指向物件詳情的連結上
+    const link = e.target.closest ? e.target.closest('a[href]') : null;
+    if (!link) return;
+    const href = link.getAttribute('href') || '';
+    const isDetail = /rent\.591\.com\.tw\/\d+/.test(href)
+      || /\/rent-detail\/\d+/.test(href)
+      || /^\/\d+(?:$|[/?#])/.test(href);
+    if (!isDetail) return;
+    const item = (e.target.closest('.item[data-id]')) || link.closest('.item[data-id]');
+    if (!item) return;
+    const itemId = extractItemId(item);
+    if (!itemId) return;
+    saveSeenItem(itemId, extractItemTitle(item));
+  }
+
+  document.addEventListener('click', handleListingOpen, true);
+  document.addEventListener('auxclick', handleListingOpen, true); // 中鍵開新分頁
+
+  // 設定或清單變動 → 即時重套（免重整）
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return;
+    if (changes.seenItems || changes.removedItems || changes.settings) {
+      applySeenTreatment();
+    }
+  });
 })();

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "591 租屋列表過濾",
-  "version": "1.5",
+  "version": "1.6",
   "description": "隱藏 591 租屋列表中不想看的物件",
   "permissions": [
     "storage"
