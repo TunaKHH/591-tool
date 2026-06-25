@@ -458,6 +458,62 @@
       display: none !important;
     }
 
+    /* Settings card */
+    .settings-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      margin-bottom: 16px;
+    }
+
+    .settings-label {
+      font-size: 14px;
+      color: var(--color-text-primary);
+      font-weight: 500;
+    }
+
+    .settings-select {
+      padding: 8px 12px;
+      font-size: 14px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-surface);
+      color: var(--color-text-primary);
+      cursor: pointer;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      color: var(--color-text-secondary);
+      border: 1px solid transparent;
+      border-radius: var(--radius-md);
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .tab-btn:hover {
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+    }
+
+    .tab-btn.active {
+      background: var(--color-primary-light);
+      color: var(--color-primary);
+      border-color: var(--color-primary);
+    }
+
     /* Responsive */
     @media (max-width: 640px) {
       .main {
@@ -506,19 +562,32 @@
         <div class="nav-logo">🏠</div>
         <span>591 租屋過濾</span>
       </div>
-      <span class="nav-version">v1.4</span>
+      <span class="nav-version">v1.6</span>
     </div>
   </nav>
 
   <main class="main">
     <div class="page-header">
-      <h1 class="page-title">已移除物件</h1>
-      <p class="page-description">管理您在 591 租屋列表中隱藏的物件</p>
+      <h1 class="page-title">物件管理</h1>
+      <p class="page-description">管理您在 591 租屋列表中標記的物件</p>
+    </div>
+
+    <div class="settings-card">
+      <label class="settings-label" for="seen-mode-select">已看過的物件在列表上要</label>
+      <select id="seen-mode-select" class="settings-select">
+        <option value="fade">淡化顯示</option>
+        <option value="hide">完全隱藏</option>
+      </select>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="removed">已移除</button>
+      <button class="tab-btn" data-tab="seen">已看過</button>
     </div>
 
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-label">已移除物件數量</div>
+        <div class="stat-label" id="stats-label">已移除物件數量</div>
         <div class="stat-value" id="stats-number">-</div>
       </div>
     </div>
@@ -559,7 +628,7 @@
           <thead>
             <tr>
               <th class="col-name" data-sort="name">物件名稱 <span class="sort-icon">↕</span></th>
-              <th class="col-time sorted" data-sort="time">移除時間 <span class="sort-icon">↓</span></th>
+              <th class="col-time sorted" data-sort="time" id="time-col-header">移除時間 <span class="sort-icon">↓</span></th>
               <th class="col-actions">操作</th>
             </tr>
           </thead>
